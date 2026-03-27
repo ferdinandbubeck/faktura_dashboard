@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valantic Performance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #fcfcfc; color: #1d1d1f; }
+
+        .kpi-card {
+            background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;
+            padding: 16px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .slider-box {
+            background: #ffffff; border: 1px solid #d1d5db; padding: 12px 20px;
+            border-radius: 10px; max-width: 400px; margin-bottom: 24px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; height: 6px; background: #f3f4f6;
+            border-radius: 3px; outline: none; border: 1px solid #9ca3af; margin: 10px 0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; background: #e30613;
+            border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .progress-track { position: relative; width: 100%; background: #f3f4f6; height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid #e5e7eb; }
+        .progress-bar { height: 100%; transition: width 0.8s ease; }
+        .target-line { position: absolute; top: 0; width: 2px; height: 100%; background: #e30613; z-index: 10; }
+
+        .valantic-red { color: #e30613; }
+        .bg-valantic { background-color: #e30613; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-[1100px] mx-auto">
+        <header class="flex justify-between items-end mb-6">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight uppercase italic">Faktura<span class="valantic-red">Analytics</span></h1>
+                <p class="text-[9px] text-slate-400 font-bold tracking-[0.3em] uppercase">valantic performance tool</p>
+            </div>
+            <button onclick="document.getElementById('fileInput').click()" class="text-[10px] font-bold border border-slate-300 px-4 py-1.5 rounded-md hover:bg-slate-50 transition-all uppercase tracking-widest">
+                Daten Import
+            </button>
+            <input type="file" id="fileInput" class="hidden" accept=".csv">
+        </header>
+
+        <div class="slider-box">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ziel-Einstellung</span>
+                <span id="targetValDisplay" class="text-sm font-bold valantic-red">85%</span>
+            </div>
+            <input type="range" id="targetSlider" min="0" max="100" value="85">
+        </div>
+
+        <div id="dashboardUI" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="kpi-card">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Faktura YTD</span>
+                        <span id="ytdQuote" class="text-lg font-bold">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="ytdBar" class="progress-bar bg-slate-800" style="width: 0%"></div>
+                        <div id="ytdTarget" class="target-line"></div>
+                    </div>
+                    <p id="startDateInfo" class="text-[9px] font-semibold text-slate-400 uppercase"></p>
+                </div>
+
+                <div class="kpi-card">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Projektstunden</span>
+                    <h2 id="ytdProjects" class="text-lg font-bold">0</h2>
+                    <div class="h-2"></div>
+                    <p class="text-[9px] font-semibold text-slate-400 uppercase">Summe Ist-Stunden</p>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aktueller Monat</span>
+                        <span id="currentStatus" class="text-lg font-bold valantic-red">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="statusBar" class="progress-bar bg-valantic" style="width: 0%"></div>
+                        <div id="curTarget" class="target-line"></div>
+                    </div>
+                    <p class="text-[9px] font-semibold text-slate-400 uppercase">Performance vs. Ziel</p>
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jahresverlauf & Forecast</span>
+                    <div class="flex gap-4 text-[9px] font-bold text-slate-400">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-valantic rounded-sm"></span> AKTUELL</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-200 rounded-sm"></span> BASIS</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 border border-slate-400 rounded-sm" style="background: repeating-linear-gradient(45deg, transparent, transparent 2px, #cbd5e1 2px, #cbd5e1 4px);"></span> FORECAST</span>
+                    </div>
+                </div>
+                <div class="h-[350px]">
+                    <canvas id="fakturaChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="emptyState" class="py-20 text-center border-2 border-dashed border-slate-200 rounded-xl">
+            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Bitte CSV Datei laden</p>
+        </div>
+    </div>
+
+    <script>
+        Chart.register(ChartDataLabels);
+        const targetSlider = document.getElementById('targetSlider');
+        const targetValDisplay = document.getElementById('targetValDisplay');
+        const ALL_MONTHS = ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"];
+        let myChart = null, globalRawData = null;
+
+        function getForecastPattern() {
+            const canvas = document.createElement('canvas'); canvas.width = 10; canvas.height = 10;
+            const ctx = canvas.getContext('2d'); ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(10, 0); ctx.stroke();
+            return ctx.createPattern(canvas, 'repeat');
+        }
+
+        targetSlider.oninput = (e) => {
+            const val = e.target.value;
+            targetValDisplay.innerText = val + '%';
+            if(globalRawData) renderDashboard(globalRawData);
+        };
+
+        document.getElementById('fileInput').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) { Papa.parse(file, { header: true, delimiter: ";", skipEmptyLines: true, complete: (res) => { globalRawData = res.data; renderDashboard(globalRawData); } }); }
+        };
+
+        function parseNum(str) { return parseFloat(String(str || "0").replace(',', '.')); }
+
+        function renderDashboard(data) {
+            document.getElementById('dashboardUI').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            const targetGoal = parseInt(targetSlider.value);
+            const currentMonthIdx = new Date().getMonth();
+
+            let ytdProj = 0, ytdSoll = 0, curQuote = 0;
+            const istData = new Array(12).fill(null);
+            const forecastData = new Array(12).fill(null);
+
+            data.forEach(row => {
+                const parts = row.Monat.split('.'); if (parts.length < 3) return;
+                const mIdx = parseInt(parts[1]) - 1;
+                const pStunden = parseNum(row["Buchungen | Projekte"]);
+                const sStunden = parseNum(row.Soll);
+                const val = sStunden > 0 ? parseFloat((pStunden / sStunden * 100).toFixed(1)) : 0;
+
+                if (mIdx >= 0 && mIdx < 12) {
+                    if (mIdx <= currentMonthIdx) istData[mIdx] = val; else forecastData[mIdx] = val;
+                    if (mIdx <= currentMonthIdx && sStunden > 0) { ytdProj += pStunden; ytdSoll += sStunden; }
+                    if (mIdx === currentMonthIdx) curQuote = val;
+                }
+            });
+
+            const ytdPercent = ytdSoll > 0 ? (ytdProj / ytdSoll * 100) : 0;
+            document.getElementById('ytdQuote').innerText = ytdPercent.toFixed(1) + '%';
+            document.getElementById('ytdProjects').innerText = Math.round(ytdProj).toLocaleString('de-DE');
+            document.getElementById('currentStatus').innerText = curQuote.toFixed(1) + '%';
+            document.getElementById('ytdBar').style.width = Math.min(ytdPercent, 100) + '%';
+            document.getElementById('statusBar').style.width = Math.min(curQuote, 100) + '%';
+            document.getElementById('ytdTarget').style.left = targetGoal + '%';
+            document.getElementById('curTarget').style.left = targetGoal + '%';
+
+            const ctx = document.getElementById('fakturaChart').getContext('2d');
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ALL_MONTHS,
+                    datasets: [
+                        {
+                            label: 'Ist', data: istData,
+                            backgroundColor: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? '#e30613' : '#f1f5f9'),
+                            borderRadius: 4, stack: 'combined', barPercentage: 0.85
+                        },
+                        {
+                            label: 'Forecast', data: forecastData,
+                            backgroundColor: getForecastPattern(),
+                            borderColor: '#cbd5e1', borderWidth: 1,
+                            borderRadius: 4, stack: 'combined', barPercentage: 0.85
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 120, stacked: true, ticks: { font: { size: 9 } } },
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { weight: 'bold', size: 10 } } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end', align: 'top', color: '#94a3b8', font: { size: 9, weight: 'bold' },
+                            formatter: (v) => v > 0 ? v + '%' : ''
+                        },
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: 'line', yMin: targetGoal, yMax: targetGoal,
+                                    borderColor: '#e30613', borderWidth: 2, borderDash: [5, 5],
+                                    label: { display: true, content: targetGoal + '%', backgroundColor: '#e30613', color: '#fff', font: { size: 9 } }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
