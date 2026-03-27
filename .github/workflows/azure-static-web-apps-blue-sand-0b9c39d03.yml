@@ -31,8 +31,7 @@ jobs:
           app_location: "/"          # Root des Repos
           api_location: ""           
           output_location: "dist"    # Hier liegt deine index.html
-          ###### Zusätzliche Zeile (optional aber hilfreich) ######
-          app_build_command: "ls -R"
+          skip_app_build: true
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
