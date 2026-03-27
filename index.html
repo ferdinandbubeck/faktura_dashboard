@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valantic Performance Dashboard</title>
+    <title>Valantic Faktura Analytics & Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
@@ -15,7 +15,7 @@
 
         .kpi-card {
             background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;
-            padding: 16px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;
+            padding: 16px; height: 110px; display: flex; flex-direction: column; justify-content: space-between;
         }
 
         .slider-box {
@@ -39,6 +39,10 @@
 
         .valantic-red { color: #e30613; }
         .bg-valantic { background-color: #e30613; }
+        
+        #simChartCanvas { cursor: ns-resize; }
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .collapsible-content.open { max-height: 500px; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -57,63 +61,85 @@
 
         <div class="slider-box">
             <div class="flex justify-between items-center mb-1">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ziel-Einstellung</span>
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-xs">Ziel-Faktura (%)</span>
                 <span id="targetValDisplay" class="text-sm font-bold valantic-red">85%</span>
             </div>
             <input type="range" id="targetSlider" min="0" max="100" value="85">
         </div>
 
         <div id="dashboardUI" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="kpi-card">
                     <div class="flex justify-between items-start">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Faktura YTD</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Faktura YTD</span>
                         <span id="ytdQuote" class="text-lg font-bold">0%</span>
                     </div>
-                    <div class="progress-track">
-                        <div id="ytdBar" class="progress-bar bg-slate-800" style="width: 0%"></div>
-                        <div id="ytdTarget" class="target-line"></div>
-                    </div>
-                    <p id="startDateInfo" class="text-[9px] font-semibold text-slate-400 uppercase"></p>
-                </div>
-
-                <div class="kpi-card">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Projektstunden</span>
-                    <h2 id="ytdProjects" class="text-lg font-bold">0</h2>
-                    <div class="h-2"></div>
-                    <p class="text-[9px] font-semibold text-slate-400 uppercase">Summe Ist-Stunden</p>
+                    <div class="progress-track"><div id="ytdBar" class="progress-bar bg-slate-800" style="width: 0%"></div><div id="ytdTarget" class="target-line"></div></div>
+                    <p class="text-[8px] font-semibold text-slate-400 uppercase">Ist-Stand</p>
                 </div>
 
                 <div class="kpi-card">
                     <div class="flex justify-between items-start">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aktueller Monat</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Projektstunden</span>
+                        <span id="ytdProjects" class="text-lg font-bold">0</span>
+                    </div>
+                    <div class="h-2"></div>
+                    <p class="text-[8px] font-semibold text-slate-400 uppercase">Summe IST</p>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Aktueller Monat</span>
                         <span id="currentStatus" class="text-lg font-bold valantic-red">0%</span>
                     </div>
-                    <div class="progress-track">
-                        <div id="statusBar" class="progress-bar bg-valantic" style="width: 0%"></div>
-                        <div id="curTarget" class="target-line"></div>
+                    <div class="progress-track"><div id="statusBar" class="progress-bar bg-valantic" style="width: 0%"></div><div id="curTarget" class="target-line"></div></div>
+                    <p class="text-[8px] font-semibold text-slate-400 uppercase">Monatsstatus</p>
+                </div>
+
+                <div id="simKpiCard" class="kpi-card border-red-200 bg-red-50/20">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[9px] font-bold valantic-red uppercase tracking-tighter">Simulierter Jahresschnitt</span>
+                        <span id="simResult" class="text-lg font-black valantic-red">0%</span>
                     </div>
-                    <p class="text-[9px] font-semibold text-slate-400 uppercase">Performance vs. Ziel</p>
+                    <div class="progress-track bg-red-100"><div id="simBar" class="progress-bar bg-valantic" style="width: 0%"></div><div id="simTarget" class="target-line"></div></div>
+                    <p class="text-[8px] font-bold text-red-400 uppercase italic">Planung</p>
                 </div>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <div class="flex justify-between items-center mb-6">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jahresverlauf & Forecast</span>
-                    <div class="flex gap-4 text-[9px] font-bold text-slate-400">
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-valantic rounded-sm"></span> AKTUELL</span>
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-200 rounded-sm"></span> BASIS</span>
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 border border-slate-400 rounded-sm" style="background: repeating-linear-gradient(45deg, transparent, transparent 2px, #cbd5e1 2px, #cbd5e1 4px);"></span> FORECAST</span>
-                    </div>
-                </div>
-                <div class="h-[350px]">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 block">Report: Jahresverlauf</span>
+                <div class="h-[280px]">
                     <canvas id="fakturaChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm">
+                <button onclick="toggleSimulator()" class="w-full flex justify-between items-center p-5 focus:outline-none">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-slate-100 p-1.5 rounded-md"><svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg></span>
+                        <span class="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Interactive Planning Simulator</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span id="simChevron" class="text-slate-400 text-xs transition-transform duration-300">▼</span>
+                    </div>
+                </button>
+                
+                <div id="simContent" class="collapsible-content px-6 pb-6">
+                    <div class="flex justify-between items-center mb-4 border-t border-slate-50 pt-4">
+                        <p class="text-[11px] text-slate-500 italic">Klicke oder ziehe die Balken der Zukunft, um das Jahr zu simulieren.</p>
+                        <button onclick="resetSimulation()" class="text-[9px] font-black uppercase text-slate-400 border border-slate-200 px-3 py-1 rounded hover:bg-slate-50 hover:text-valantic-red transition-all">
+                            Simulation Reset
+                        </button>
+                    </div>
+                    <div class="h-[280px]">
+                        <canvas id="simChartCanvas"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div id="emptyState" class="py-20 text-center border-2 border-dashed border-slate-200 rounded-xl">
-            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Bitte CSV Datei laden</p>
+            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest italic">Warte auf Datei-Upload...</p>
         </div>
     </div>
 
@@ -122,7 +148,10 @@
         const targetSlider = document.getElementById('targetSlider');
         const targetValDisplay = document.getElementById('targetValDisplay');
         const ALL_MONTHS = ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"];
-        let myChart = null, globalRawData = null;
+        let myChart = null, simChart = null, globalRawData = null;
+        let originalForecastValues = new Array(12).fill(0);
+        let simValues = new Array(12).fill(0);
+        let currentMonthIdx = new Date().getMonth();
 
         function getForecastPattern() {
             const canvas = document.createElement('canvas'); canvas.width = 10; canvas.height = 10;
@@ -131,9 +160,24 @@
             return ctx.createPattern(canvas, 'repeat');
         }
 
+        function toggleSimulator() {
+            const content = document.getElementById('simContent');
+            const chevron = document.getElementById('simChevron');
+            content.classList.toggle('open');
+            chevron.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        function resetSimulation() {
+            simValues = [...originalForecastValues];
+            if (simChart) {
+                simChart.data.datasets[0].data = [...simValues];
+                simChart.update();
+            }
+            updateSimulationResult();
+        }
+
         targetSlider.oninput = (e) => {
-            const val = e.target.value;
-            targetValDisplay.innerText = val + '%';
+            targetValDisplay.innerText = e.target.value + '%';
             if(globalRawData) renderDashboard(globalRawData);
         };
 
@@ -148,7 +192,6 @@
             document.getElementById('dashboardUI').classList.remove('hidden');
             document.getElementById('emptyState').classList.add('hidden');
             const targetGoal = parseInt(targetSlider.value);
-            const currentMonthIdx = new Date().getMonth();
 
             let ytdProj = 0, ytdSoll = 0, curQuote = 0;
             const istData = new Array(12).fill(null);
@@ -162,7 +205,15 @@
                 const val = sStunden > 0 ? parseFloat((pStunden / sStunden * 100).toFixed(1)) : 0;
 
                 if (mIdx >= 0 && mIdx < 12) {
-                    if (mIdx <= currentMonthIdx) istData[mIdx] = val; else forecastData[mIdx] = val;
+                    if (mIdx <= currentMonthIdx) {
+                        istData[mIdx] = val;
+                        simValues[mIdx] = val;
+                        originalForecastValues[mIdx] = val;
+                    } else {
+                        forecastData[mIdx] = val;
+                        simValues[mIdx] = val;
+                        originalForecastValues[mIdx] = val;
+                    }
                     if (mIdx <= currentMonthIdx && sStunden > 0) { ytdProj += pStunden; ytdSoll += sStunden; }
                     if (mIdx === currentMonthIdx) curQuote = val;
                 }
@@ -174,54 +225,90 @@
             document.getElementById('currentStatus').innerText = curQuote.toFixed(1) + '%';
             document.getElementById('ytdBar').style.width = Math.min(ytdPercent, 100) + '%';
             document.getElementById('statusBar').style.width = Math.min(curQuote, 100) + '%';
-            document.getElementById('ytdTarget').style.left = targetGoal + '%';
-            document.getElementById('curTarget').style.left = targetGoal + '%';
+            ['ytdTarget', 'curTarget', 'simTarget'].forEach(id => {
+                document.getElementById(id).style.left = targetGoal + '%';
+            });
 
+            initMainChart(istData, forecastData, targetGoal);
+            initSimChart(targetGoal);
+            updateSimulationResult();
+        }
+
+        function initMainChart(ist, forecast, target) {
             const ctx = document.getElementById('fakturaChart').getContext('2d');
             if (myChart) myChart.destroy();
-
             myChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: ALL_MONTHS,
                     datasets: [
-                        {
-                            label: 'Ist', data: istData,
-                            backgroundColor: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? '#e30613' : '#f1f5f9'),
-                            borderRadius: 4, stack: 'combined', barPercentage: 0.85
-                        },
-                        {
-                            label: 'Forecast', data: forecastData,
-                            backgroundColor: getForecastPattern(),
-                            borderColor: '#cbd5e1', borderWidth: 1,
-                            borderRadius: 4, stack: 'combined', barPercentage: 0.85
-                        }
+                        { label: 'Ist', data: ist, backgroundColor: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? '#e30613' : '#f1f5f9'), borderRadius: 4, stack: 'combined', barPercentage: 0.85 },
+                        { label: 'Forecast', data: forecast, backgroundColor: getForecastPattern(), borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 4, stack: 'combined', barPercentage: 0.85 }
                     ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, max: 120, stacked: true, ticks: { font: { size: 9 } } },
-                        x: { stacked: true, grid: { display: false }, ticks: { font: { weight: 'bold', size: 10 } } }
+                    scales: { y: { beginAtZero: true, max: 120, stacked: true, ticks: {font: {size: 9}} }, x: { stacked: true, grid: { display: false }, ticks: {font: {size: 9, weight: 'bold'}} } },
+                    plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', font: { size: 9 }, formatter: (v) => v > 0 ? v + '%' : '' },
+                    annotation: { annotations: { l1: { type: 'line', yMin: target, yMax: target, borderColor: '#e30613', borderWidth: 2, borderDash: [5, 5] } } } }
+                }
+            });
+        }
+
+        function initSimChart(target) {
+            const ctx = document.getElementById('simChartCanvas').getContext('2d');
+            if (simChart) simChart.destroy();
+            
+            simChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ALL_MONTHS,
+                    datasets: [{
+                        data: [...simValues],
+                        backgroundColor: ALL_MONTHS.map((_, i) => i <= currentMonthIdx ? '#e30613' : '#f1f5f9'),
+                        borderColor: ALL_MONTHS.map((_, i) => i <= currentMonthIdx ? '#e30613' : '#d1d5db'),
+                        borderWidth: 1, borderRadius: 4, barPercentage: 0.85
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { 
+                        y: { beginAtZero: true, max: 120, ticks: { font: { size: 9 } } }, 
+                        x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } } 
                     },
                     plugins: {
                         legend: { display: false },
-                        datalabels: {
-                            anchor: 'end', align: 'top', color: '#94a3b8', font: { size: 9, weight: 'bold' },
-                            formatter: (v) => v > 0 ? v + '%' : ''
-                        },
-                        annotation: {
-                            annotations: {
-                                line1: {
-                                    type: 'line', yMin: targetGoal, yMax: targetGoal,
-                                    borderColor: '#e30613', borderWidth: 2, borderDash: [5, 5],
-                                    label: { display: true, content: targetGoal + '%', backgroundColor: '#e30613', color: '#fff', font: { size: 9 } }
-                                }
-                            }
-                        }
+                        datalabels: { anchor: 'end', align: 'top', color: '#64748b', font: { size: 9, weight: 'bold' }, formatter: (v) => v.toFixed(0) + '%' },
+                        annotation: { annotations: { l1: { type: 'line', yMin: target, yMax: target, borderColor: '#e30613', borderWidth: 2, borderDash: [4, 4] } } }
                     }
                 }
             });
+
+            const handleSim = (e) => {
+                const rect = ctx.canvas.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                const points = simChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+                if (points.length > 0) {
+                    const idx = points[0].index;
+                    if (idx > currentMonthIdx) {
+                        const newVal = Math.min(120, Math.max(0, simChart.scales.y.getValueForPixel(y)));
+                        simValues[idx] = newVal;
+                        simChart.data.datasets[0].data[idx] = newVal;
+                        simChart.update('none');
+                        updateSimulationResult();
+                    }
+                }
+            };
+
+            ctx.canvas.onmousedown = (e) => { handleSim(e); ctx.canvas.onmousemove = handleSim; };
+            window.onmouseup = () => { ctx.canvas.onmousemove = null; };
+        }
+
+        function updateSimulationResult() {
+            const sum = simValues.reduce((a, b) => a + b, 0);
+            const avg = sum / 12;
+            document.getElementById('simResult').innerText = avg.toFixed(1) + '%';
+            document.getElementById('simBar').style.width = Math.min(avg, 100) + '%';
         }
     </script>
 </body>
