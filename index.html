@@ -63,6 +63,24 @@
             -webkit-appearance: none; width: 16px; height: 16px; background: var(--val-gradient); border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px var(--val-coral);
         }
 
+        .header-target-control {
+            min-width: 190px;
+            padding: 8px 12px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .header-target-control input[type=range] {
+            height: 4px;
+            margin: 4px 0 0 0;
+            background: rgba(255,255,255,0.08);
+        }
+        .header-target-control input[type=range]::-webkit-slider-thumb {
+            width: 12px;
+            height: 12px;
+            box-shadow: 0 0 7px rgba(255,75,75,0.7);
+        }
+
         .progress-track { position: relative; width: 100%; background: rgba(255,255,255,0.06); height: 6px; border-radius: 9999px; overflow: hidden; }
         .progress-bar { height: 100%; border-radius: 9999px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .target-line { position: absolute; top: 0; width: 2px; height: 100%; background: #ffffff; box-shadow: 0 0 6px #fff; z-index: 10; }
@@ -103,6 +121,14 @@
                 <p class="text-[10px] text-white/40 font-bold tracking-[0.35em] uppercase mt-0.5">Valantic ACE</p>
             </div>
             <div class="flex items-center gap-3">
+                <div class="header-target-control hidden sm:block">
+                    <div class="flex justify-between items-center gap-4">
+                        <span class="text-[9px] font-bold text-white/35 uppercase tracking-[0.18em]">Ziel</span>
+                        <span id="targetValDisplay" class="text-xs font-bold gradient-text">85%</span>
+                    </div>
+                    <input type="range" id="targetSlider" min="0" max="100" value="85" aria-label="Ziel-Faktura">
+                </div>
+
             <button onclick="exportDashboardPDF()" class="text-xs font-bold border border-white/10 px-5 py-2.5 rounded-xl hover:bg-white/5 transition-all uppercase tracking-widest flex items-center gap-2 bg-white/[0.02]">
                 <i class="ph ph-file-pdf text-base text-white/70"></i> PDF Export
             </button>
@@ -130,14 +156,6 @@
                 <div class="flex items-center gap-2.5 border-b border-white/5 pb-2">
                     <i class="ph ph-briefcase text-lg text-white/60"></i>
                     <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Faktura &amp; Performance</h2>
-                </div>
-
-                <div class="liquid-glass p-4 max-w-sm">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[11px] font-bold text-white/50 uppercase tracking-widest">Ziel-Faktura</span>
-                        <span id="targetValDisplay" class="text-base font-bold gradient-text">85%</span>
-                    </div>
-                    <input type="range" id="targetSlider" min="0" max="100" value="85">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -680,7 +698,7 @@
             const sections = dashboard.querySelectorAll('section');
 
             const pdf = new jsPDF({
-                orientation: 'landscape',
+                orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
@@ -696,8 +714,8 @@
 
                 const imgData = canvas.toDataURL('image/png');
 
-                const pageWidth = 297;
-                const pageHeight = 210;
+                const pageWidth = 210;
+                const pageHeight = 297;
                 const margin = 10;
 
                 const imgWidth = pageWidth - margin * 2;
