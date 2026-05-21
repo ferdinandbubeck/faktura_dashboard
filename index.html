@@ -1,145 +1,290 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valantic Faktura Analytics & Planner</title>
+    <title>valantic Faktura &amp; Work-Life Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.2"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #fcfcfc; color: #1d1d1f; }
-
-        .kpi-card {
-            background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;
-            padding: 16px; height: 110px; display: flex; flex-direction: column; justify-content: space-between;
+        :root {
+            --val-coral: #ff4b4b;
+            --val-peach: #ff744f;
+            --val-gradient: linear-gradient(135deg, #ff4b4b, #ff744f);
+            --val-black: #100c2a;
+            --bg: #100c2a;
+            --text: rgba(255, 255, 255, 0.90);
+            --text-sub: rgba(255, 255, 255, 0.55);
+            --border: rgba(255, 255, 255, 0.10);
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --glass-glow: 0 8px 32px 0 rgba(255, 75, 75, 0.08);
+            --traffic-green: #10b981;
+            --traffic-yellow: #fbbf24;
+            --traffic-red: #ef4444;
         }
 
-        .slider-box {
-            background: #ffffff; border: 1px solid #d1d5db; padding: 12px 20px;
-            border-radius: 10px; max-width: 400px; margin-bottom: 24px;
+        body { 
+            font-family: 'Maven Pro', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text);
+            background-image: radial-gradient(circle at 80% 20%, rgba(255, 75, 75, 0.06) 0%, transparent 40%),
+                              radial-gradient(circle at 15% 75%, rgba(255, 116, 79, 0.04) 0%, transparent 35%);
+            min-height: 100vh;
         }
 
-        input[type=range] {
-            -webkit-appearance: none; width: 100%; height: 6px; background: #f3f4f6;
-            border-radius: 3px; outline: none; border: 1px solid #9ca3af; margin: 10px 0;
+        .liquid-glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 16px; height: 16px; background: #e30613;
-            border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        .liquid-glass:hover {
+            border-color: rgba(255, 75, 75, 0.20);
+            box-shadow: var(--glass-glow);
         }
 
-        .progress-track { position: relative; width: 100%; background: #f3f4f6; height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid #e5e7eb; }
-        .progress-bar { height: 100%; transition: width 0.8s ease; }
-        .target-line { position: absolute; top: 0; width: 2px; height: 100%; background: #e30613; z-index: 10; }
-
-        .valantic-red { color: #e30613; }
-        .bg-valantic { background-color: #e30613; }
+        .kpi-card { padding: 18px; min-height: 125px; display: flex; flex-direction: column; justify-content: space-between; }
+        .gradient-text { background: var(--val-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         
-        #simChartCanvas { cursor: ns-resize; }
-        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out; }
-        .collapsible-content.open { max-height: 500px; }
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; outline: none; margin: 12px 0;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; background: var(--val-gradient); border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px var(--val-coral);
+        }
+
+        .progress-track { position: relative; width: 100%; background: rgba(255,255,255,0.06); height: 6px; border-radius: 9999px; overflow: hidden; }
+        .progress-bar { height: 100%; border-radius: 9999px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .target-line { position: absolute; top: 0; width: 2px; height: 100%; background: #ffffff; box-shadow: 0 0 6px #fff; z-index: 10; }
+        
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .collapsible-content.open { max-height: 600px; }
+
+        .traffic-light {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: 18px;
+            padding: 5px 4px;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .traffic-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.13);
+            transition: all 0.3s ease;
+        }
+        .traffic-light.green .dot-green { background: var(--traffic-green); box-shadow: 0 0 9px var(--traffic-green); }
+        .traffic-light.yellow .dot-yellow { background: var(--traffic-yellow); box-shadow: 0 0 9px var(--traffic-yellow); }
+        .traffic-light.red .dot-red { background: var(--traffic-red); box-shadow: 0 0 9px var(--traffic-red); }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-[1100px] mx-auto">
-        <header class="flex justify-between items-end mb-6">
+    <div class="max-w-[1200px] mx-auto space-y-8">
+        <header class="flex justify-between items-end border-b border-white/5 pb-5">
             <div>
-                <h1 class="text-xl font-bold tracking-tight uppercase italic">Faktura<span class="valantic-red">Analytics</span></h1>
-                <p class="text-[9px] text-slate-400 font-bold tracking-[0.3em] uppercase">valantic performance tool</p>
+                <h1 class="text-2xl font-extrabold tracking-tight uppercase"><span class="gradient-text">Performance</span> Dashboard</h1>
+                <p class="text-[10px] text-white/40 font-bold tracking-[0.35em] uppercase mt-0.5">Valantic ACE</p>
             </div>
-            <button onclick="document.getElementById('fileInput').click()" class="text-[10px] font-bold border border-slate-300 px-4 py-1.5 rounded-md hover:bg-slate-50 transition-all uppercase tracking-widest">
-                Daten Import
+            <div class="flex items-center gap-3">
+            <button onclick="exportDashboardPDF()" class="text-xs font-bold border border-white/10 px-5 py-2.5 rounded-xl hover:bg-white/5 transition-all uppercase tracking-widest flex items-center gap-2 bg-white/[0.02]">
+                <i class="ph ph-file-pdf text-base text-white/70"></i> PDF Export
+            </button>
+
+            <button onclick="document.getElementById('fileInput').click()" class="text-xs font-bold border border-white/10 px-5 py-2.5 rounded-xl hover:bg-white/5 transition-all uppercase tracking-widest flex items-center gap-2 bg-white/[0.02]">
+                <i class="ph ph-upload-simple text-base" style="color: var(--val-coral)"></i> Daten Import
             </button>
             <input type="file" id="fileInput" class="hidden" accept=".csv">
+            </div>
         </header>
 
-        <div class="slider-box">
-            <div class="flex justify-between items-center mb-1">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-xs">Ziel-Faktura (%)</span>
-                <span id="targetValDisplay" class="text-sm font-bold valantic-red">85%</span>
+        <div id="emptyState" onclick="document.getElementById('fileInput').click()" class="liquid-glass py-24 text-center cursor-pointer group flex flex-col items-center justify-center gap-5">
+            <div class="bg-white/5 p-5 rounded-2xl group-hover:bg-white/10 border border-white/5 transition-all">
+                <i class="ph ph-chart-bar text-4xl" style="color: var(--val-coral)"></i>
             </div>
-            <input type="range" id="targetSlider" min="0" max="100" value="85">
-        </div>
-
-        <div id="dashboardUI" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="kpi-card">
-                    <div class="flex justify-between items-start">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase">Faktura YTD</span>
-                        <span id="ytdQuote" class="text-lg font-bold">0%</span>
-                    </div>
-                    <div class="progress-track"><div id="ytdBar" class="progress-bar bg-slate-800" style="width: 0%"></div><div id="ytdTarget" class="target-line"></div></div>
-                    <p class="text-[8px] font-semibold text-slate-400 uppercase tracking-tighter">Ist-Stand (Abgeschlossen)</p>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="flex justify-between items-start">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase">Projektstunden</span>
-                        <span id="ytdProjects" class="text-lg font-bold">0</span>
-                    </div>
-                    <div class="h-2"></div>
-                    <p class="text-[8px] font-semibold text-slate-400 uppercase">Summe IST</p>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="flex justify-between items-start">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase">Aktueller Monat</span>
-                        <span id="currentStatus" class="text-lg font-bold valantic-red">0%</span>
-                    </div>
-                    <div class="progress-track"><div id="statusBar" class="progress-bar bg-valantic" style="width: 0%"></div><div id="curTarget" class="target-line"></div></div>
-                    <p class="text-[8px] font-semibold text-slate-400 uppercase">Derzeitiger Lauf</p>
-                </div>
-
-                <div id="simKpiCard" class="kpi-card border-red-200 bg-red-50/20 shadow-sm shadow-red-100">
-                    <div class="flex justify-between items-start">
-                        <span class="text-[9px] font-bold valantic-red uppercase tracking-tighter">Simulation Jahresschnitt</span>
-                        <span id="simResult" class="text-lg font-black valantic-red">0%</span>
-                    </div>
-                    <div class="progress-track bg-red-100"><div id="simBar" class="progress-bar bg-valantic" style="width: 0%"></div><div id="simTarget" class="target-line"></div></div>
-                    <p class="text-[8px] font-bold text-red-400 uppercase italic">Dynamische Planung</p>
-                </div>
-            </div>
-
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 block">Report: Jahresverlauf (CSV Basis)</span>
-                <div class="h-[280px]">
-                    <canvas id="fakturaChart"></canvas>
-                </div>
-            </div>
-
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <button onclick="toggleSimulator()" class="w-full flex justify-between items-center p-5 hover:bg-slate-50 transition-colors focus:outline-none">
-                    <div class="flex items-center gap-3">
-                        <span class="bg-red-50 p-1.5 rounded-md"><svg class="w-4 h-4 text-valantic-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg></span>
-                        <span class="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Interactive Planning Simulator</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span id="simChevron" class="text-slate-400 text-xs transition-transform duration-300">▼</span>
-                    </div>
-                </button>
-                
-                <div id="simContent" class="collapsible-content px-6 pb-6">
-                    <div class="flex justify-between items-center mb-4 border-t border-slate-50 pt-4">
-                        <p class="text-[11px] text-slate-500 italic">Ziehe die Balken (Aktueller Monat + Zukunft), um das Jahr zu planen.</p>
-                        <button onclick="resetSimulation()" class="text-[9px] font-black uppercase text-slate-400 border border-slate-200 px-3 py-1 rounded hover:bg-slate-50 hover:text-valantic-red transition-all">
-                            Simulation Reset
-                        </button>
-                    </div>
-                    <div class="h-[300px]">
-                        <canvas id="simChartCanvas"></canvas>
-                    </div>
-                </div>
+            <div>
+                <p class="text-white/90 text-base font-bold uppercase tracking-wider mb-1.5">CSV-Arbeitszeitauswertung laden</p>
+                <p class="text-white/40 text-xs italic font-medium">Klicke hier, um deine Performance- &amp; Zeitanalyse zu starten</p>
             </div>
         </div>
 
-        <div id="emptyState" class="py-20 text-center border-2 border-dashed border-slate-200 rounded-xl">
-            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest italic">Warte auf Datei-Upload...</p>
+        <div id="dashboardUI" class="hidden space-y-10">
+            
+            <section class="space-y-4">
+                <div class="flex items-center gap-2.5 border-b border-white/5 pb-2">
+                    <i class="ph ph-briefcase text-lg text-white/60"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Faktura &amp; Performance</h2>
+                </div>
+
+                <div class="liquid-glass p-4 max-w-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] font-bold text-white/50 uppercase tracking-widest">Ziel-Faktura</span>
+                        <span id="targetValDisplay" class="text-base font-bold gradient-text">85%</span>
+                    </div>
+                    <input type="range" id="targetSlider" min="0" max="100" value="85">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-white/40 uppercase tracking-wider">Faktura YTD</span>
+                                <span id="ytdQuote" class="block text-xl font-bold text-white mt-1">0%</span>
+                            </div>
+                            <div id="ytdTraffic" class="traffic-light red" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="progress-track"><div id="ytdBar" class="progress-bar bg-white/40" style="width: 0%"></div><div id="ytdTarget" class="target-line"></div></div>
+                        <p class="text-[9px] font-medium text-white/40 uppercase">Effektive Auslastung</p>
+                    </div>
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-white/40 uppercase tracking-wider">Projektstunden</span>
+                                <span id="ytdProjects" class="block text-xl font-bold gradient-text mt-1">0</span>
+                            </div>
+                            <div id="projectTraffic" class="traffic-light red" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="h-2"></div>
+                        <p class="text-[9px] font-medium text-white/40 uppercase">Geleistete Client-Stunden</p>
+                    </div>
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-white/40 uppercase tracking-wider">Aktueller Monat</span>
+                                <span id="currentStatus" class="block text-xl font-bold text-white mt-1">0%</span>
+                            </div>
+                            <div id="currentTraffic" class="traffic-light red" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="progress-track"><div id="statusBar" class="progress-bar" style="background: var(--val-gradient); width: 0%"></div><div id="curTarget" class="target-line"></div></div>
+                        <p class="text-[9px] font-medium text-white/40 uppercase">Laufender Monatstakt</p>
+                    </div>
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--val-coral)">Simulierter Schnitt</span>
+                                <span id="simResult" class="block text-xl font-extrabold text-white mt-1">0%</span>
+                            </div>
+                            <div id="simTraffic" class="traffic-light red" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="progress-track"><div id="simBar" class="progress-bar" style="background: var(--val-gradient); width: 0%"></div><div id="simTarget" class="target-line"></div></div>
+                        <p class="text-[9px] font-bold uppercase italic" style="color: var(--val-peach)">Ganzjahres-Projektion</p>
+                    </div>
+                </div>
+
+                <div class="liquid-glass p-5 w-full">
+                    <span class="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-4 block">Faktura-Quote nach Monaten</span>
+                    <div class="h-[280px] w-full"><canvas id="fakturaChart"></canvas></div>
+                </div>
+
+                <div class="liquid-glass overflow-hidden w-full">
+                    <button onclick="toggleSimulator()" class="w-full flex justify-between items-center p-5 hover:bg-white/[0.02] transition-colors focus:outline-none border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-white/5 p-2 rounded-xl border border-white/5"><i class="ph ph-chart-line text-lg" style="color: var(--val-coral)"></i></div>
+                            <span class="text-xs font-bold text-white/80 uppercase tracking-widest">Interactive Planning Simulator</span>
+                        </div>
+                        <i id="simChevron" class="ph ph-caret-down text-white/40 text-sm transition-transform duration-300"></i>
+                    </button>
+                    <div id="simContent" class="collapsible-content px-6 pb-6 bg-white/[0.01]">
+                        <div class="flex justify-between items-center py-4 mb-2">
+                            <p class="text-xs text-white/40 italic flex items-center gap-2"><i class="ph ph-info"></i> Ziehe die Balken vertikal, um das Jahr frei zu simulieren.</p>
+                            <button onclick="resetSimulation()" class="text-[10px] font-bold uppercase text-white/40 border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all">Simulation Reset</button>
+                        </div>
+                        <div class="h-[280px]"><canvas id="simChartCanvas"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="space-y-4">
+                <div class="flex items-center gap-2.5 border-b border-white/5 pb-2">
+                    <i class="ph ph-heart text-lg text-white/60"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Work-Life-Balance &amp; Kontext</h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-white/40 uppercase tracking-wider">Verfügbarkeit YTD</span>
+                                <span id="netAvailability" class="block text-xl font-bold text-emerald-400 mt-1">0%</span>
+                            </div>
+                            <div id="availabilityTraffic" class="traffic-light red" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="progress-track"><div id="availBar" class="progress-bar bg-emerald-500" style="width: 0%"></div></div>
+                        <p class="text-[9px] font-medium text-white/40 uppercase">Arbeitsfähige Zeit im Gesamtjahr</p>
+                    </div>
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-white/40 uppercase tracking-wider">Zeitkonto YTD</span>
+                                <span id="timeSaldo" class="block text-xl font-bold text-white mt-1">0 h</span>
+                            </div>
+                            <div id="saldoTraffic" class="traffic-light yellow" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="h-2"></div>
+                        <p id="saldoSub" class="text-[9px] font-medium text-white/40 uppercase">Überstunden-Konto</p>
+                    </div>
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-white/40 uppercase tracking-wider">Interne Last YTD</span>
+                                <span id="ytdOverhead" class="block text-xl font-bold text-amber-400 mt-1">0 h</span>
+                            </div>
+                            <div id="overheadTraffic" class="traffic-light yellow" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="h-2"></div>
+                        <p class="text-[9px] font-medium text-white/40 uppercase">Interne Themen / Trainings</p>
+                    </div>
+                    <div class="liquid-glass kpi-card">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-white/40 uppercase tracking-wider">Pausenquote YTD</span>
+                                <span id="pauseRatio" class="block text-xl font-bold text-sky-400 mt-1">0%</span>
+                            </div>
+                            <div id="pauseTraffic" class="traffic-light yellow" title="Ampelstatus">
+                                <span class="traffic-dot dot-red"></span><span class="traffic-dot dot-yellow"></span><span class="traffic-dot dot-green"></span>
+                            </div>
+                        </div>
+                        <div class="h-2"></div>
+                        <p class="text-[9px] font-medium text-white/40 uppercase">Durchschnittliche Pause im Gesamtjahr</p>
+                    </div>
+                </div>
+
+                <div class="liquid-glass p-5 w-full">
+                    <span class="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-4 block">Zeitverteilung: Buchungen absolut in Stunden vs. Soll</span>
+                    <div class="h-[280px] w-full"><canvas id="effortChart"></canvas></div>
+                </div>
+            </section>
+
         </div>
     </div>
 
@@ -148,16 +293,48 @@
         const targetSlider = document.getElementById('targetSlider');
         const targetValDisplay = document.getElementById('targetValDisplay');
         const ALL_MONTHS = ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"];
-        let myChart = null, simChart = null, globalRawData = null;
+        let myChart = null, simChart = null, effortChart = null, globalRawData = null;
         let originalForecastValues = new Array(12).fill(0);
         let simValues = new Array(12).fill(0);
         let currentMonthIdx = new Date().getMonth();
 
         function getForecastPattern() {
-            const canvas = document.createElement('canvas'); canvas.width = 10; canvas.height = 10;
-            const ctx = canvas.getContext('2d'); ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(10, 0); ctx.stroke();
+            const canvas = document.createElement('canvas'); canvas.width = 12; canvas.height = 12;
+            const ctx = canvas.getContext('2d'); ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(12, 0); ctx.stroke();
             return ctx.createPattern(canvas, 'repeat');
+        }
+
+        function setTrafficLight(id, status) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('green', 'yellow', 'red');
+            el.classList.add(status);
+        }
+
+        function trafficByTarget(value, target) {
+            if (value >= target) return 'green';
+            if (value >= target * 0.9) return 'yellow';
+            return 'red';
+        }
+
+        function trafficForSaldo(hours) {
+            if (hours >= 0) return 'green';
+            if (hours >= -8) return 'yellow';
+            return 'red';
+        }
+
+        function trafficForOverhead(overhead, nettoSoll) {
+            const pct = nettoSoll > 0 ? (overhead / nettoSoll * 100) : 0;
+            if (pct <= 10) return 'green';
+            if (pct <= 20) return 'yellow';
+            return 'red';
+        }
+
+        function trafficForPause(pausePct) {
+            if (pausePct >= 4 && pausePct <= 12) return 'green';
+            if (pausePct > 12 && pausePct <= 18) return 'yellow';
+            return 'red';
         }
 
         function toggleSimulator() {
@@ -169,64 +346,153 @@
 
         function resetSimulation() {
             simValues = [...originalForecastValues];
-            if (simChart) {
-                simChart.data.datasets[0].data = [...simValues];
-                simChart.update();
-            }
+            if (simChart) { simChart.data.datasets[0].data = [...simValues]; simChart.update(); }
             updateSimulationResult();
         }
 
-        targetSlider.oninput = (e) => {
-            targetValDisplay.innerText = e.target.value + '%';
-            if(globalRawData) renderDashboard(globalRawData);
-        };
+        if(targetSlider) {
+            targetSlider.oninput = (e) => {
+                targetValDisplay.innerText = e.target.value + '%';
+                if(globalRawData) renderDashboard(globalRawData);
+            };
+        }
 
         document.getElementById('fileInput').onchange = (e) => {
             const file = e.target.files[0];
-            if (file) { Papa.parse(file, { header: true, delimiter: ";", skipEmptyLines: true, complete: (res) => { globalRawData = res.data; renderDashboard(globalRawData); } }); }
+            if (file) { 
+                Papa.parse(file, { 
+                    header: true, delimiter: ";", skipEmptyLines: true,
+                    complete: (res) => { globalRawData = res.data; renderDashboard(globalRawData); } 
+                }); 
+            }
         };
 
-        function parseNum(str) { return parseFloat(String(str || "0").replace(',', '.')); }
+        function parseNum(str) { 
+            if (!str) return 0;
+            let clean = String(str).replace(/["']/g, "").trim();
+            return parseFloat(clean.replace(',', '.')) || 0; 
+        }
+
+        function getValue(row, matcher) {
+            const key = Object.keys(row).find(matcher);
+            return key ? parseNum(row[key]) : 0;
+        }
+
+        function pctOfSoll(value, soll) {
+            return soll > 0 ? parseFloat((value / soll * 100).toFixed(1)) : 0;
+        }
 
         function renderDashboard(data) {
-            document.getElementById('dashboardUI').classList.remove('hidden');
-            document.getElementById('emptyState').classList.add('hidden');
             const targetGoal = parseInt(targetSlider.value);
+            let ytdProj = 0, ytdSoll = 0, curQuote = 0, ytdOverheadHrs = 0;
+            let totalSoll = 0, totalAbsence = 0, latestSaldo = 0;
+            let totalAnwesenheit = 0, totalPause = 0;
 
-            let ytdProj = 0, ytdSoll = 0, curQuote = 0;
             const istData = new Array(12).fill(null);
             const forecastData = new Array(12).fill(null);
+            
+            const projectHoursArr = new Array(12).fill(0);
+            const overheadHoursArr = new Array(12).fill(0);
+            const absenceHoursArr = new Array(12).fill(0);
+            const sollHoursArr = new Array(12).fill(null);
 
             data.forEach(row => {
-                const parts = row.Monat.split('.'); if (parts.length < 3) return;
-                const mIdx = parseInt(parts[1]) - 1;
-                const pStunden = parseNum(row["Buchungen | Projekte"]);
-                const sStunden = parseNum(row.Soll);
-                const val = sStunden > 0 ? parseFloat((pStunden / sStunden * 100).toFixed(1)) : 0;
+                let monatKey = Object.keys(row).find(k => k.trim().replace(/["']/g, "") === "Monat");
+                if (!monatKey || !row[monatKey]) return;
 
-                if (mIdx >= 0 && mIdx < 12) {
-                    if (mIdx <= currentMonthIdx) istData[mIdx] = val;
-                    else forecastData[mIdx] = val;
-                    
-                    simValues[mIdx] = val;
-                    originalForecastValues[mIdx] = val;
-                    
-                    if (mIdx <= currentMonthIdx && sStunden > 0) { ytdProj += pStunden; ytdSoll += sStunden; }
-                    if (mIdx === currentMonthIdx) curQuote = val;
+                let monatStr = String(row[monatKey]).replace(/["']/g, "").trim();
+                const parts = monatStr.split('.'); if (parts.length < 3) return;
+                const mIdx = parseInt(parts[1]) - 1;
+                if (mIdx < 0 || mIdx >= 12) return;
+
+                const pStunden = getValue(row, k => k.includes("Projekte"));
+                const sStunden = getValue(row, k => k.trim().replace(/["']/g, "") === "Soll");
+                const urlaub = getValue(row, k => k.includes("Urlaub"));
+                const krank = getValue(row, k => k.includes("Krankheit"));
+                const overhead = getValue(row, k => k.includes("Grundlasten"));
+                const saldo = getValue(row, k => k.trim().replace(/["']/g, "") === "Saldo");
+                const anwesenheit = getValue(row, k => k.includes("Anwesenheit | Anwesenheit"));
+                const pause = getValue(row, k => k.includes("Anwesenheit | Pause"));
+
+                const abwesenheit = urlaub + krank;
+                const nettoSoll = Math.max(0, sStunden - urlaub);
+                const val = nettoSoll > 0 ? parseFloat((pStunden / nettoSoll * 100).toFixed(1)) : 0;
+
+                // Zweiter Chart:
+                // Darstellung der echten Raw-Werte aus der CSV in Stunden.
+                // Der Stack zeigt absolut: Abwesenheit + Grundlast + Projekte.
+                // Die Soll-Arbeitszeit läuft als absolute Stundenlinie darüber.
+                projectHoursArr[mIdx] = pStunden;
+                overheadHoursArr[mIdx] = overhead;
+                absenceHoursArr[mIdx] = abwesenheit;
+                sollHoursArr[mIdx] = sStunden > 0 ? sStunden : null;
+
+                if (mIdx <= currentMonthIdx) {
+                    istData[mIdx] = val;
+                    if (nettoSoll > 0 || pStunden > 0 || overhead > 0 || abwesenheit > 0) {
+                        ytdProj += pStunden;
+                        ytdSoll += nettoSoll;
+                        ytdOverheadHrs += overhead;
+                        totalSoll += sStunden;
+                        totalAbsence += abwesenheit;
+                        totalAnwesenheit += anwesenheit;
+                        totalPause += pause;
+                        latestSaldo = saldo;
+                    }
+                } else {
+                    forecastData[mIdx] = val;
                 }
+                
+                simValues[mIdx] = val;
+                originalForecastValues[mIdx] = val;
+                if (mIdx === currentMonthIdx) curQuote = val;
             });
+
+            document.getElementById('dashboardUI').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
 
             const ytdPercent = ytdSoll > 0 ? (ytdProj / ytdSoll * 100) : 0;
             document.getElementById('ytdQuote').innerText = ytdPercent.toFixed(1) + '%';
-            document.getElementById('ytdProjects').innerText = Math.round(ytdProj).toLocaleString('de-DE');
+            document.getElementById('ytdProjects').innerText = Math.round(ytdProj).toLocaleString('de-DE') + ' h';
+            document.getElementById('ytdProjects').title = (ytdProj / 8).toFixed(1) + ' Projekttage im Gesamtjahr';
             document.getElementById('currentStatus').innerText = curQuote.toFixed(1) + '%';
             document.getElementById('ytdBar').style.width = Math.min(ytdPercent, 100) + '%';
             document.getElementById('statusBar').style.width = Math.min(curQuote, 100) + '%';
+
+            const netAvailabilityPct = totalSoll > 0 ? ((totalSoll - totalAbsence) / totalSoll * 100) : 100;
+            const availabilityDays = ((totalSoll - totalAbsence) / 8).toFixed(1);
+            document.getElementById('netAvailability').innerText = netAvailabilityPct.toFixed(1) + '%';
+            document.getElementById('netAvailability').title = availabilityDays + ' produktive Tage im Gesamtjahr';
+            document.getElementById('availBar').style.width = Math.min(netAvailabilityPct, 100) + '%';
+            
+            document.getElementById('timeSaldo').innerText = (latestSaldo >= 0 ? '+' : '') + latestSaldo.toFixed(2) + ' h';
+            document.getElementById('timeSaldo').title = (latestSaldo / 8).toFixed(1) + ' Tage Zeitkonto';
+            const saldoCardSub = document.getElementById('saldoSub');
+            if(latestSaldo < 0) { saldoCardSub.innerText = "Minusstunden"; saldoCardSub.style.color = "var(--val-coral)"; }
+            else { saldoCardSub.innerText = "Überstunden-Konto"; saldoCardSub.style.color = "rgba(255,255,255,0.4)"; }
+
+            document.getElementById('ytdOverhead').innerText = Math.round(ytdOverheadHrs) + ' h';
+            document.getElementById('ytdOverhead').title = (ytdOverheadHrs / 8).toFixed(1) + ' interne Tage';
+            
+            const pausePct = totalAnwesenheit > 0 ? (totalPause / totalAnwesenheit * 100) : 0;
+            const pauseDays = (totalPause / 8).toFixed(1);
+            document.getElementById('pauseRatio').innerText = pausePct.toFixed(1) + '%';
+            document.getElementById('pauseRatio').title = pauseDays + ' Pausentage im Gesamtjahr';
+
             ['ytdTarget', 'curTarget', 'simTarget'].forEach(id => {
                 document.getElementById(id).style.left = targetGoal + '%';
             });
 
+            setTrafficLight('ytdTraffic', trafficByTarget(ytdPercent, targetGoal));
+            setTrafficLight('projectTraffic', trafficByTarget(ytdPercent, targetGoal));
+            setTrafficLight('currentTraffic', trafficByTarget(curQuote, targetGoal));
+            setTrafficLight('availabilityTraffic', netAvailabilityPct >= 85 ? 'green' : (netAvailabilityPct >= 70 ? 'yellow' : 'red'));
+            setTrafficLight('saldoTraffic', trafficForSaldo(latestSaldo));
+            setTrafficLight('overheadTraffic', trafficForOverhead(ytdOverheadHrs, ytdSoll));
+            setTrafficLight('pauseTraffic', trafficForPause(pausePct));
+
             initMainChart(istData, forecastData, targetGoal);
+            initEffortChart(projectHoursArr, overheadHoursArr, absenceHoursArr, sollHoursArr);
             initSimChart(targetGoal);
             updateSimulationResult();
         }
@@ -239,15 +505,117 @@
                 data: {
                     labels: ALL_MONTHS,
                     datasets: [
-                        { label: 'Ist', data: ist, backgroundColor: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? '#e30613' : '#f1f5f9'), borderRadius: 4, stack: 'combined', barPercentage: 0.85 },
-                        { label: 'Forecast', data: forecast, backgroundColor: getForecastPattern(), borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 4, stack: 'combined', barPercentage: 0.85 }
+                        { label: 'Ist', data: ist, backgroundColor: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? '#ff4b4b' : 'rgba(255,255,255,0.08)'), borderRadius: 5, stack: 'combined', barPercentage: 0.8 },
+                        { label: 'Forecast', data: forecast, backgroundColor: getForecastPattern(), borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderRadius: 5, stack: 'combined', barPercentage: 0.8 }
                     ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 120, stacked: true, ticks: {font: {size: 9}} }, x: { stacked: true, grid: { display: false }, ticks: {font: {size: 9, weight: 'bold'}} } },
-                    plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', font: { size: 9 }, formatter: (v) => v > 0 ? v + '%' : '' },
-                    annotation: { annotations: { l1: { type: 'line', yMin: target, yMax: target, borderColor: '#e30613', borderWidth: 2, borderDash: [5, 5] } } } }
+                    scales: { 
+                        y: { beginAtZero: true, max: 120, stacked: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9, family: 'Maven Pro' } } }, 
+                        x: { stacked: true, grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10, weight: 'bold', family: 'Maven Pro' } } } 
+                    },
+                    plugins: { 
+                        legend: { display: false }, 
+                        datalabels: { anchor: 'end', align: 'top', color: 'rgba(255,255,255,0.7)', font: { size: 9, weight: '600', family: 'Maven Pro' }, formatter: (v) => v > 0 ? v + '%' : '' },
+                        annotation: { annotations: { l1: { type: 'line', yMin: target, yMax: target, borderColor: '#ff4b4b', borderWidth: 1.5, borderDash: [5, 5] } } } 
+                    }
+                }
+            });
+        }
+
+        function initEffortChart(projects, overhead, absence, sollLine) {
+            const ctx = document.getElementById('effortChart').getContext('2d');
+            if (effortChart) effortChart.destroy();
+            
+            effortChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ALL_MONTHS,
+                    datasets: [
+                        // Absolute Stundenwerte aus der CSV, gestacked.
+                        { 
+                            label: 'Abwesenheit (h)', 
+                            data: absence, 
+                            borderColor: '#a855f7', 
+                            backgroundColor: 'rgba(168, 85, 247, 0.18)', 
+                            fill: true, 
+                            tension: 0.25, 
+                            borderWidth: 1.5, 
+                            yAxisId: 'y', 
+                            stack: 'effort',
+                            order: 1
+                        },
+                        { 
+                            label: 'Grundlast (h)', 
+                            data: overhead, 
+                            borderColor: '#fbbf24', 
+                            backgroundColor: 'rgba(251, 191, 36, 0.18)', 
+                            fill: '-1', 
+                            tension: 0.25, 
+                            borderWidth: 1.5, 
+                            yAxisId: 'y', 
+                            stack: 'effort',
+                            order: 2
+                        },
+                        { 
+                            label: 'Projekte (h)', 
+                            data: projects, 
+                            borderColor: '#ff744f', 
+                            backgroundColor: 'rgba(255, 116, 79, 0.22)', 
+                            fill: '-1', 
+                            tension: 0.25, 
+                            borderWidth: 2, 
+                            yAxisId: 'y', 
+                            stack: 'effort',
+                            order: 3
+                        },
+                        { 
+                            label: 'Soll Arbeitszeit (h)', 
+                            data: sollLine, 
+                            borderColor: '#ffffff', 
+                            backgroundColor: 'transparent', 
+                            tension: 0, 
+                            borderWidth: 2, 
+                            pointStyle: false, 
+                            pointRadius: 0, 
+                            fill: false, 
+                            yAxisId: 'y', 
+                            stack: 'sollLine', 
+                            borderDash: [6, 5],
+                            order: 10
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            stacked: true,
+                            grid: { color: 'rgba(255,255,255,0.03)' }, 
+                            ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, callback: value => value + ' h' }, 
+                            title: { display: true, text: 'Stunden (h)', color: 'rgba(255,255,255,0.3)', font: { size: 9 } } 
+                        },
+                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } } }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: 'rgba(255,255,255,0.6)', font: { family: 'Maven Pro', size: 9 } } },
+                        datalabels: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) {
+                                        const days = (context.parsed.y / 8).toFixed(1);
+                                        label += context.parsed.y.toFixed(2) + ' h (' + days + ' Tage)';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
@@ -255,30 +623,27 @@
         function initSimChart(target) {
             const ctx = document.getElementById('simChartCanvas').getContext('2d');
             if (simChart) simChart.destroy();
-            
             simChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: ALL_MONTHS,
                     datasets: [{
                         data: [...simValues],
-                        // Aktueller Monat und Zukunft sind hellgrau, Vergangenheit ist fix (rot/heller)
-                        backgroundColor: ALL_MONTHS.map((_, i) => i < currentMonthIdx ? '#f8fafc' : '#f1f5f9'),
-                        borderColor: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? '#e30613' : (i < currentMonthIdx ? '#e2e8f0' : '#cbd5e1')),
-                        borderWidth: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? 2 : 1),
-                        borderRadius: 4, barPercentage: 0.85
+                        backgroundColor: ALL_MONTHS.map((_, i) => i < currentMonthIdx ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)'),
+                        borderColor: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? '#ff4b4b' : (i < currentMonthIdx ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.15)')),
+                        borderWidth: ALL_MONTHS.map((_, i) => i === currentMonthIdx ? 2 : 1), borderRadius: 5, barPercentage: 0.8
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     scales: { 
-                        y: { beginAtZero: true, max: 120, ticks: { font: { size: 9 } } }, 
-                        x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } } 
+                        y: { beginAtZero: true, max: 120, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 } } }, 
+                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10, weight: 'bold' } } } 
                     },
                     plugins: {
                         legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'top', color: '#64748b', font: { size: 9, weight: 'bold' }, formatter: (v) => v.toFixed(0) + '%' },
-                        annotation: { annotations: { l1: { type: 'line', yMin: target, yMax: target, borderColor: '#e30613', borderWidth: 2, borderDash: [4, 4] } } }
+                        datalabels: { anchor: 'end', align: 'top', color: 'rgba(255,255,255,0.4)', font: { size: 9, weight: 'bold' }, formatter: (v) => v.toFixed(0) + '%' },
+                        annotation: { annotations: { l1: { type: 'line', yMin: target, yMax: target, borderColor: '#ff4b4b', borderWidth: 1.5, borderDash: [4, 4] } } }
                     }
                 }
             });
@@ -289,26 +654,88 @@
                 const points = simChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
                 if (points.length > 0) {
                     const idx = points[0].index;
-                    // Bearbeitbar ab aktuellem Monat (inklusive)
                     if (idx >= currentMonthIdx) {
                         const newVal = Math.min(120, Math.max(0, simChart.scales.y.getValueForPixel(y)));
-                        simValues[idx] = newVal;
-                        simChart.data.datasets[0].data[idx] = newVal;
-                        simChart.update('none');
-                        updateSimulationResult();
+                        simValues[idx] = newVal; simChart.data.datasets[0].data[idx] = newVal;
+                        simChart.update('none'); updateSimulationResult();
                     }
                 }
             };
-
             ctx.canvas.onmousedown = (e) => { handleSim(e); ctx.canvas.onmousemove = handleSim; };
             window.onmouseup = () => { ctx.canvas.onmousemove = null; };
         }
 
+        async function exportDashboardPDF() {
+            const { jsPDF } = window.jspdf;
+
+            const dashboard = document.getElementById('dashboardUI');
+            if (dashboard.classList.contains('hidden')) {
+                alert('Bitte zuerst Daten laden.');
+                return;
+            }
+
+            const now = new Date();
+            const timestamp = now.toLocaleString('de-DE');
+
+            const sections = dashboard.querySelectorAll('section');
+
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            for (let i = 0; i < sections.length; i++) {
+                const section = sections[i];
+
+                const canvas = await html2canvas(section, {
+                    backgroundColor: '#100c2a',
+                    scale: 2,
+                    useCORS: true
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+
+                const pageWidth = 297;
+                const pageHeight = 210;
+                const margin = 10;
+
+                const imgWidth = pageWidth - margin * 2;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                if (i > 0) {
+                    pdf.addPage();
+                }
+
+                pdf.setFillColor(16, 12, 42);
+                pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(14);
+                pdf.setTextColor(255,255,255);
+                pdf.text('valantic ACE Performance Dashboard', margin, 12);
+
+                pdf.setFontSize(8);
+                pdf.setTextColor(180,180,180);
+                pdf.text('Exportiert: ' + timestamp, margin, 17);
+
+                pdf.addImage(imgData, 'PNG', margin, 24, imgWidth, imgHeight);
+
+                pdf.setFontSize(7);
+                pdf.setTextColor(120,120,120);
+                pdf.text('Seite ' + (i + 1) + ' / ' + sections.length, pageWidth - 28, pageHeight - 6);
+            }
+
+            pdf.save('valantic_dashboard_export.pdf');
+        }
+
         function updateSimulationResult() {
+            const targetGoal = parseInt(targetSlider.value);
             const sum = simValues.reduce((a, b) => a + b, 0);
             const avg = sum / 12;
             document.getElementById('simResult').innerText = avg.toFixed(1) + '%';
             document.getElementById('simBar').style.width = Math.min(avg, 100) + '%';
+            setTrafficLight('simTraffic', trafficByTarget(avg, targetGoal));
         }
     </script>
 </body>
